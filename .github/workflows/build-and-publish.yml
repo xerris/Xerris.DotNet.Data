@@ -1,4 +1,4 @@
-name: Publish Xerris.DotNet.Core
+name: Publish Xerris.DotNet.Data
 
 on:
   pull_request:
