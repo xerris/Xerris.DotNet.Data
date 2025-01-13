@@ -16,9 +16,13 @@ public abstract class DbContext<T> : DbContext where T : DbContext
     {
         AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
         auditVisitor = new AuditVisitor();
+        
         this.observer = observer;
-        if (this.observer != null)
-            base.ChangeTracker.Tracked += this.observer.OnEntityTracked!;
+
+        if (this.observer == null) return;
+        
+        base.ChangeTracker.Tracked += this.observer.OnEntityTracked!;
+        base.ChangeTracker.StateChanged += this.observer.OnStateChanged;
     }
 
     public DbContext WithUserId(Guid userId)
@@ -66,6 +70,9 @@ public abstract class DbContext<T> : DbContext where T : DbContext
             .Where(e => e is { Entity: IDeleteable, State: EntityState.Deleted })
             .ForEach(x => auditVisitor.AcceptDeleted(x, TokenUserId));
 
-        return await base.SaveChangesAsync(cancellationToken);
+        var saved = await base.SaveChangesAsync(cancellationToken);
+        
+        observer?.OnSaved();
+        return saved;
     }
 }
