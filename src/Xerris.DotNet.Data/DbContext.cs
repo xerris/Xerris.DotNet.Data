@@ -54,6 +54,22 @@ public abstract class DbContext<T> : DbContext where T : DbContext
     
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
+        ApplyAuditVisitor();
+        var saved = await base.SaveChangesAsync(cancellationToken);
+        observer?.OnSaved();
+        return saved;
+    }
+
+    public override int SaveChanges(bool acceptAllChangesOnSuccess)
+    {
+        ApplyAuditVisitor();
+        var saved = base.SaveChanges(acceptAllChangesOnSuccess);
+        observer?.OnSaved();
+        return saved;
+    }
+
+    private void ApplyAuditVisitor()
+    {
         ChangeTracker
             .Entries()
             .Where(e => e is { Entity: IAuditable, State: EntityState.Added })
@@ -69,10 +85,5 @@ public abstract class DbContext<T> : DbContext where T : DbContext
             .Entries()
             .Where(e => e is { Entity: IDeleteable, State: EntityState.Deleted })
             .ForEach(x => auditVisitor.AcceptDeleted(x, TokenUserId));
-
-        var saved = await base.SaveChangesAsync(cancellationToken);
-        
-        observer?.OnSaved();
-        return saved;
     }
 }
