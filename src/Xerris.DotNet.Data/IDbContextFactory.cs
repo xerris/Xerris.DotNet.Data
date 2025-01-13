@@ -2,12 +2,12 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Xerris.DotNet.Data;
 
-public interface IDbContextFactory<out  T> where T : Microsoft.EntityFrameworkCore.DbContext
+public interface IDbContextFactory<out  T> where T : DbContext
 {
     T Create();
 }
 
-public abstract class DbContextFactory<T> : IDbContextFactory<T> where T : Microsoft.EntityFrameworkCore.DbContext
+public abstract class DbContextFactory<T> : IDbContextFactory<T> where T : DbContext
 {
     protected readonly IConnectionBuilder ConnectionBuilder;
 
@@ -15,8 +15,12 @@ public abstract class DbContextFactory<T> : IDbContextFactory<T> where T : Micro
     public DbContextFactory(IConnectionBuilder connectionBuilder)
         => ConnectionBuilder = connectionBuilder;
 
+    public void RegisterObserver(IDbContextObserver observer)
+    {
+                
+    }
+    
     public T Create() => Create(ApplyOptions());
     protected abstract T Create(DbContextOptions<T> applyOptions);
-
     protected abstract DbContextOptions<T> ApplyOptions(bool sensitiveDataLoggingEnabled = false);
 }
