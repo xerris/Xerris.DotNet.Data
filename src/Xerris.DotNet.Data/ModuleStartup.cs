@@ -7,9 +7,7 @@ namespace Xerris.DotNet.Data;
 public class ModuleStartup : IModule
 {
     public void RegisterServices(IServiceCollection services)
-    {
-        services.TryAddScoped<IDbContextObserver, DefaultDbContextObserver>();
-    }
+        => services.TryAddScoped<IDbContextObserver, DefaultDbContextObserver>();
 
     public int Priority => 1;
 }
