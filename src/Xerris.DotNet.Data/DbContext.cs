@@ -1,22 +1,24 @@
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Xerris.DotNet.Core.Extensions;
 using Xerris.DotNet.Data.Audit;
 using Xerris.DotNet.Data.Domain;
-using Xerris.DotNet.Data.Extensions;
 
 namespace Xerris.DotNet.Data;
 
 public abstract class DbContext<T> : DbContext where T : DbContext
 {
     private readonly AuditVisitor auditVisitor;
+    private readonly IDbContextObserver? observer;
     private Guid? TokenUserId { get; set; }
 
-    public DbContext(DbContextOptions<T> options)
+    protected DbContext(DbContextOptions<T> options, IDbContextObserver observer)
         : base(options)
     {
         AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
         auditVisitor = new AuditVisitor();
+        this.observer = observer;
+        if (this.observer != null)
+            base.ChangeTracker.Tracked += this.observer.OnEntityTracked!;
     }
 
     public DbContext WithUserId(Guid userId)
@@ -29,6 +31,13 @@ public abstract class DbContext<T> : DbContext where T : DbContext
     {
         RegisterModels(modelBuilder);
         base.OnModelCreating(modelBuilder);
+    }
+
+    public override void Dispose()
+    {
+        if (observer != null)
+            base.ChangeTracker.Tracked -= observer.OnEntityTracked!;
+        base.Dispose();
     }
 
     protected abstract void RegisterModels(ModelBuilder modelBuilder);
@@ -60,8 +69,3 @@ public abstract class DbContext<T> : DbContext where T : DbContext
         return await base.SaveChangesAsync(cancellationToken);
     }
 }
-
-public class DateTimeConverter() : ValueConverter<DateTime, DateTime>(v => v.ToUniversalTime(), v => DateTime.SpecifyKind(v, DateTimeKind.Utc));
-
-public class EnumToDescriptionConverter<TEnum>() : 
-    ValueConverter<TEnum, string>(v => v.GetDescription(), v => v.FromDescription<TEnum>()) where TEnum : Enum;
