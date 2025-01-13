@@ -17,42 +17,42 @@ public class DbContextObserverTests : IDisposable
     }
 
     [Fact]
-    public void Observer_Should_Be_Wired_Up_Correctly()
+    public async Task Observer_Should_Be_Wired_Up_Correctly()
     {
         // Arrange
         var options = new DbContextOptionsBuilder<DbContextObserver>()
             .UseInMemoryDatabase(databaseName: "TestDatabase")
             .Options;
 
-        Customer? trackedCustomer = null!;
-        EntityTrackedEventArgs trackedEventArgs = null!;
+        var customer = new Customer { Name = "Test Customer" };
 
         mockObserver
             .Setup(o => o.OnEntityTracked(It.IsAny<object>(), It.IsAny<EntityTrackedEventArgs>()))
             .Callback<object, EntityTrackedEventArgs>((_, e) =>
             {
-                trackedCustomer = e.Entry.Entity as Customer;
-                trackedEventArgs = e;
-                trackedCustomer.Should().NotBeNull();
-            })
-            .Verifiable();
+                var tracked = e.Entry.Entity as Customer;
+                customer.Should().BeSameAs(tracked);
+            });
+        
+        mockObserver
+            .Setup(o => o.OnStateChanged(It.IsAny<object>(), It.IsAny<EntityStateChangedEventArgs>()));
+        
+        mockObserver.Setup(x => x.OnSaved());
 
         // Act
-        using (var context = new DbContextObserver(options, mockObserver.Object))
-        {
-            var customer = new Customer { Name = "Test Customer" };
-            context.Customers.Add(customer);
-            context.SaveChanges();
-        }
-
-        // Assert
-        mockObserver.Verify(o => o.OnEntityTracked(It.IsAny<object>(), It.IsAny<EntityTrackedEventArgs>()), Times.Once);
-        trackedEventArgs.Should().NotBeNull();
-        trackedEventArgs.Entry.Entity.Should().Be(trackedCustomer);
+        await using var context = new DbContextObserver(options, mockObserver.Object);
+        
+        context.Customers.Add(customer);
+        await context.SaveChangesAsync();
+        
+        mockObserver.Verify(o => o.OnEntityTracked(It.IsAny<object>(), It.IsAny<EntityTrackedEventArgs>()),
+            Times.Once);  
+        mockObserver.Verify(o => o.OnStateChanged(It.IsAny<object>(), It.IsAny<EntityStateChangedEventArgs>()),
+            Times.Once);
     }
 
     [Fact]
-    public void Observer_Should_Receive_Entities_In_Order_They_Were_Added()
+    public async Task Observer_Should_Receive_Entities_In_Order_They_Were_Added()
     {
         // Arrange
         var options = new DbContextOptionsBuilder<DbContextObserver>()
@@ -63,14 +63,20 @@ public class DbContextObserverTests : IDisposable
 
         mockObserver
             .Setup(o => o.OnEntityTracked(It.IsAny<object>(), It.IsAny<EntityTrackedEventArgs>()))
-            .Callback<object, EntityTrackedEventArgs>((_, e) =>
-            {
-                trackedEntities.Add(e.Entry.Entity);
-            })
-            .Verifiable();
+            .Callback<object, EntityTrackedEventArgs>((_, e) => { trackedEntities.Add(e.Entry.Entity); });
+
+        //OnStateChanged
+        mockObserver
+            .Setup(o => o.OnStateChanged(It.IsAny<object>(), It.IsAny<EntityStateChangedEventArgs>()));
+        mockObserver
+            .Setup(o => o.OnStateChanged(It.IsAny<object>(), It.IsAny<EntityStateChangedEventArgs>()));
+        mockObserver
+            .Setup(o => o.OnStateChanged(It.IsAny<object>(), It.IsAny<EntityStateChangedEventArgs>()));
+        
+        mockObserver.Setup(x => x.OnSaved());
 
         // Act
-        using (var context = new DbContextObserver(options, mockObserver.Object))
+        await using (var context = new DbContextObserver(options, mockObserver.Object))
         {
             var customer = new Customer { Name = "Customer1" };
             var order = new Order { CustomerId = customer.Id, Description = "Order1" };
@@ -79,20 +85,61 @@ public class DbContextObserverTests : IDisposable
             context.Customers.Add(customer);
             context.Orders.Add(order);
             context.OrderItems.Add(orderItem);
-            
-            context.SaveChanges();
+
+            await context.SaveChangesAsync();
         }
 
         // Assert
-        mockObserver.Verify(o => o.OnEntityTracked(It.IsAny<object>(), It.IsAny<EntityTrackedEventArgs>()), Times.Exactly(3));
+        mockObserver.Verify(o => o.OnEntityTracked(It.IsAny<object>(), It.IsAny<EntityTrackedEventArgs>()),
+            Times.Exactly(3));
+        
+        mockObserver.Verify(o => o.OnStateChanged(It.IsAny<object>(), It.IsAny<EntityStateChangedEventArgs>()),
+            Times.Exactly(3));
+        
         trackedEntities.Count.Should().Be(3);
         trackedEntities[0].Should().BeOfType<Customer>();
         trackedEntities[1].Should().BeOfType<Order>();
         trackedEntities[2].Should().BeOfType<OrderItem>();
     }
 
-    public void Dispose()
+    [Fact]
+    public async Task Observer_Should_Be_Notified_On_State_Changed()
     {
-        mockRepository.VerifyAll();
+        // Arrange
+        var options = new DbContextOptionsBuilder<DbContextObserver>()
+            .UseInMemoryDatabase(databaseName: "TestDatabase")
+            .Options;
+
+        var customer = new Customer { Name = "Test Customer" };
+
+        mockObserver
+            .Setup(o => o.OnEntityTracked(It.IsAny<object>(), It.IsAny<EntityTrackedEventArgs>()));
+
+        mockObserver
+            .Setup(o => o.OnStateChanged(It.IsAny<object>(), It.IsAny<EntityStateChangedEventArgs>()))
+            .Callback<object, EntityStateChangedEventArgs>((_, e) =>
+            {
+                e.Entry.Entity.Should().BeSameAs(customer);
+                e.OldState.Should().Be(EntityState.Added); //this is the OldState since this if fired AFTER the Save occurs in case it fails.
+            });
+
+        mockObserver.Setup(x => x.OnSaved());
+
+        // Act
+        await using (var context = new DbContextObserver(options, mockObserver.Object))
+        {
+            context.Customers.Add(customer);
+            await context.SaveChangesAsync();
+        }
+
+        // Assert
+        
+        mockObserver.Verify(o => o.OnEntityTracked(It.IsAny<object>(), It.IsAny<EntityTrackedEventArgs>()),
+            Times.Once);
+        mockObserver.Verify(o => o.OnStateChanged(It.IsAny<object>(), It.IsAny<EntityStateChangedEventArgs>()),
+            Times.Once);
     }
+
+    public void Dispose()
+        => mockRepository.VerifyAll();
 }
