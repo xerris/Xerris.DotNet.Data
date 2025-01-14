@@ -1,27 +1,21 @@
-using System.ComponentModel.DataAnnotations;
-using Xerris.DotNet.Data.Domain;
+using Microsoft.EntityFrameworkCore;
+using Xerris.DotNet.Data.Tests.Domain;
 
 namespace Xerris.DotNet.Data.Tests;
 
-public class Customer : AuditImmutableBase
+public class TestDbContext : DbContextBase
 {
-    
-    [MaxLength(100)]
-    public string Name { get; set; } = string.Empty;
-}
+    public TestDbContext(DbContextOptions<DbContextBase> options, IDbContextObserver observer)
+        : base(options, observer)
+    {
+    }
 
-public class Order : AuditImmutableBase
-{
-    public Guid CustomerId { get; set; }
+    public DbSet<Customer> Customers { get; set; }
+    public DbSet<Order> Orders { get; set; }
+    public DbSet<OrderItem> OrderItems { get; set; }
     
-    [MaxLength(100)]
-    public string Description { get; set; } = string.Empty;
-}
-
-public class OrderItem : AuditImmutableBase
-{
-    public Guid OrderId { get; set; }
-    
-    [MaxLength(100)]
-    public string ProductName { get; set; } = string.Empty;
+    protected override void RegisterModels(ModelBuilder modelBuilder)
+    {
+        //do nothing
+    }
 }
