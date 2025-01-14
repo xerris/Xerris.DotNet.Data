@@ -20,6 +20,6 @@ public abstract class DbContextFactory<T> : IDbContextFactory<T> where T : DbCon
     } 
     
     public T Create() => Create(ApplyOptions(), observer);
-    protected abstract T Create(DbContextOptions<DbContext> applyOptions, IDbContextObserver dbContextObserver);
-    protected abstract DbContextOptions<DbContext> ApplyOptions(bool sensitiveDataLoggingEnabled = false);
+    protected abstract T Create(DbContextOptions<T> applyOptions, IDbContextObserver dbContextObserver);
+    protected abstract DbContextOptions<T> ApplyOptions(bool sensitiveDataLoggingEnabled = false);
 }
