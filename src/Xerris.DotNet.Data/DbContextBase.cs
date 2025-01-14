@@ -5,13 +5,18 @@ using Xerris.DotNet.Data.Domain;
 
 namespace Xerris.DotNet.Data;
 
-public abstract class DbContext<T> : DbContext where T : DbContext
+public interface IDbContext
+{
+    DbContext WithUserId(Guid userId);
+}
+
+public abstract class DbContextBase : DbContext, IDbContext, IDisposable
 {
     private readonly AuditVisitor auditVisitor;
     private readonly IDbContextObserver? observer;
     private Guid? TokenUserId { get; set; }
 
-    protected DbContext(DbContextOptions<T> options, IDbContextObserver observer)
+    protected DbContextBase(DbContextOptions<DbContextBase> options, IDbContextObserver observer)
         : base(options)
     {
         AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
@@ -20,7 +25,7 @@ public abstract class DbContext<T> : DbContext where T : DbContext
         this.observer = observer;
 
         if (this.observer == null) return;
-        
+
         base.ChangeTracker.Tracked += this.observer.OnEntityTracked!;
         base.ChangeTracker.StateChanged += this.observer.OnStateChanged;
     }
@@ -39,9 +44,23 @@ public abstract class DbContext<T> : DbContext where T : DbContext
 
     public override void Dispose()
     {
-        if (observer != null)
-            base.ChangeTracker.Tracked -= observer.OnEntityTracked!;
+        DisposeObserver();
         base.Dispose();
+    }
+
+    public override ValueTask DisposeAsync()
+    {
+        DisposeObserver();
+        return base.DisposeAsync();
+    }
+
+    private void DisposeObserver()
+    {
+        if (observer == null) return;
+        
+        base.ChangeTracker.Tracked -= observer.OnEntityTracked!;
+        base.ChangeTracker.StateChanged -= observer.OnStateChanged;
+        observer.Dispose();
     }
 
     protected abstract void RegisterModels(ModelBuilder modelBuilder);

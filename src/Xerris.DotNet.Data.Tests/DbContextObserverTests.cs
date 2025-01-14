@@ -2,6 +2,7 @@ using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Moq;
+using Xerris.DotNet.Data.Tests.Domain;
 
 namespace Xerris.DotNet.Data.Tests;
 
@@ -9,21 +10,24 @@ public class DbContextObserverTests : IDisposable
 {
     private readonly MockRepository mockRepository;
     private readonly Mock<IDbContextObserver> mockObserver;
+    private readonly DbContextOptions<DbContextBase> dbContextOptions;
 
     public DbContextObserverTests()
     {
         mockRepository = new MockRepository(MockBehavior.Strict);
         mockObserver = mockRepository.Create<IDbContextObserver>();
+        dbContextOptions = new DbContextOptionsBuilder<DbContextBase>()
+            .UseInMemoryDatabase(databaseName: "TestDatabase")
+            .Options;
+        
+        mockObserver.Setup(x => x.OnSaved());
+        mockObserver.Setup(x => x.Dispose());
     }
 
     [Fact]
     public async Task Observer_Should_Be_Wired_Up_Correctly()
     {
         // Arrange
-        var options = new DbContextOptionsBuilder<DbContextObserver>()
-            .UseInMemoryDatabase(databaseName: "TestDatabase")
-            .Options;
-
         var customer = new Customer { Name = "Test Customer" };
 
         mockObserver
@@ -37,27 +41,26 @@ public class DbContextObserverTests : IDisposable
         mockObserver
             .Setup(o => o.OnStateChanged(It.IsAny<object>(), It.IsAny<EntityStateChangedEventArgs>()));
         
-        mockObserver.Setup(x => x.OnSaved());
-
         // Act
-        await using var context = new DbContextObserver(options, mockObserver.Object);
-        
-        context.Customers.Add(customer);
-        await context.SaveChangesAsync();
-        
+        await using (var context = new TestDbContext(dbContextOptions, mockObserver.Object))
+        {
+            context.Customers.Add(customer);
+            await context.SaveChangesAsync();
+        }
+
         mockObserver.Verify(o => o.OnEntityTracked(It.IsAny<object>(), It.IsAny<EntityTrackedEventArgs>()),
             Times.Once);  
         mockObserver.Verify(o => o.OnStateChanged(It.IsAny<object>(), It.IsAny<EntityStateChangedEventArgs>()),
             Times.Once);
+        
+        mockObserver.Verify(x => x.OnSaved(), Times.Once);
+        mockObserver.Verify(x => x.Dispose(), Times.Once);
     }
 
     [Fact]
     public async Task Observer_Should_Receive_Entities_In_Order_They_Were_Added()
     {
         // Arrange
-        var options = new DbContextOptionsBuilder<DbContextObserver>()
-            .UseInMemoryDatabase(databaseName: "TestDatabase")
-            .Options;
 
         var trackedEntities = new List<object>();
 
@@ -72,11 +75,9 @@ public class DbContextObserverTests : IDisposable
             .Setup(o => o.OnStateChanged(It.IsAny<object>(), It.IsAny<EntityStateChangedEventArgs>()));
         mockObserver
             .Setup(o => o.OnStateChanged(It.IsAny<object>(), It.IsAny<EntityStateChangedEventArgs>()));
-        
-        mockObserver.Setup(x => x.OnSaved());
 
         // Act
-        await using (var context = new DbContextObserver(options, mockObserver.Object))
+        await using (var context = new TestDbContext(dbContextOptions, mockObserver.Object))
         {
             var customer = new Customer { Name = "Customer1" };
             var order = new Order { CustomerId = customer.Id, Description = "Order1" };
@@ -96,6 +97,9 @@ public class DbContextObserverTests : IDisposable
         mockObserver.Verify(o => o.OnStateChanged(It.IsAny<object>(), It.IsAny<EntityStateChangedEventArgs>()),
             Times.Exactly(3));
         
+        mockObserver.Verify(x => x.OnSaved(), Times.Once);
+        mockObserver.Verify(x => x.Dispose(), Times.Once);
+        
         trackedEntities.Count.Should().Be(3);
         trackedEntities[0].Should().BeOfType<Customer>();
         trackedEntities[1].Should().BeOfType<Order>();
@@ -106,10 +110,6 @@ public class DbContextObserverTests : IDisposable
     public async Task Observer_Should_Be_Notified_On_State_Changed()
     {
         // Arrange
-        var options = new DbContextOptionsBuilder<DbContextObserver>()
-            .UseInMemoryDatabase(databaseName: "TestDatabase")
-            .Options;
-
         var customer = new Customer { Name = "Test Customer" };
 
         mockObserver
@@ -123,10 +123,8 @@ public class DbContextObserverTests : IDisposable
                 e.OldState.Should().Be(EntityState.Added); //this is the OldState since this if fired AFTER the Save occurs in case it fails.
             });
 
-        mockObserver.Setup(x => x.OnSaved());
-
         // Act
-        await using (var context = new DbContextObserver(options, mockObserver.Object))
+        await using (var context = new TestDbContext(dbContextOptions, mockObserver.Object))
         {
             context.Customers.Add(customer);
             await context.SaveChangesAsync();
@@ -138,6 +136,9 @@ public class DbContextObserverTests : IDisposable
             Times.Once);
         mockObserver.Verify(o => o.OnStateChanged(It.IsAny<object>(), It.IsAny<EntityStateChangedEventArgs>()),
             Times.Once);
+        
+        mockObserver.Verify(x => x.OnSaved(), Times.Once);
+        mockObserver.Verify(x => x.Dispose(), Times.Once);
     }
 
     public void Dispose()
