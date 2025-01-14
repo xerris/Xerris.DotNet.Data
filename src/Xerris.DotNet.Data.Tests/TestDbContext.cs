@@ -5,7 +5,7 @@ namespace Xerris.DotNet.Data.Tests;
 
 public class TestDbContext : DbContextBase
 {
-    public TestDbContext(DbContextOptions<DbContextBase> options, IDbContextObserver observer)
+    public TestDbContext(DbContextOptions<DbContext> options, IDbContextObserver observer)
         : base(options, observer)
     {
     }

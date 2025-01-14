@@ -16,7 +16,7 @@ public abstract class DbContextBase : DbContext, IDbContext, IDisposable
     private readonly IDbContextObserver? observer;
     private Guid? TokenUserId { get; set; }
 
-    protected DbContextBase(DbContextOptions<DbContextBase> options, IDbContextObserver observer)
+    protected DbContextBase(DbContextOptions<DbContext> options, IDbContextObserver observer)
         : base(options)
     {
         AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
