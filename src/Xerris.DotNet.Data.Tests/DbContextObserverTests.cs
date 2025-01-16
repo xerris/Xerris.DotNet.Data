@@ -2,6 +2,7 @@ using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Moq;
+using Xerris.DotNet.Data.Tests.Context;
 using Xerris.DotNet.Data.Tests.Domain;
 
 namespace Xerris.DotNet.Data.Tests;
