@@ -17,4 +17,8 @@
       <PackageReference Include="Xerris.DotNet.Core" Version="0.1.22" />
     </ItemGroup>
 
+    <ItemGroup Condition="Exists('..\..\..\Xerris.Dotnet.Core\src\Xerris.DotNet.Core\Xerris.DotNet.Core.csproj')">
+        <ProjectReference Include="..\..\..\Xerris.Dotnet.Core\src\Xerris.DotNet.Core\Xerris.DotNet.Core.csproj" />
+    </ItemGroup>
+    
 </Project>
