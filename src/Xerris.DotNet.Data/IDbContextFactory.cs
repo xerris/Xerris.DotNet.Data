@@ -13,7 +13,7 @@ public abstract class DbContextFactory<T> : IDbContextFactory<T> where T : DbCon
     protected readonly IDbContextObserver Observer;
 
     // ReSharper disable once ConvertToPrimaryConstructor
-    public DbContextFactory(IConnectionBuilder connectionBuilder, IDbContextObserver observer)
+    protected DbContextFactory(IConnectionBuilder connectionBuilder, IDbContextObserver observer)
     {
         ConnectionBuilder = connectionBuilder;
         Observer = observer;

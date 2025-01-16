@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Xerris.DotNet.Data.Tests.Domain;
 
-namespace Xerris.DotNet.Data.Tests;
+namespace Xerris.DotNet.Data.Tests.Context;
 
 public class TestDbContext : DbContextBase
 {
@@ -13,7 +13,7 @@ public class TestDbContext : DbContextBase
     public DbSet<Customer> Customers { get; set; }
     public DbSet<Order> Orders { get; set; }
     public DbSet<OrderItem> OrderItems { get; set; }
-    
+
     protected override void RegisterModels(ModelBuilder modelBuilder)
     {
         //do nothing
