@@ -1,3 +1,3 @@
-Xerris.DotNet.Core
+Xerris.DotNet.Data
 
-A collection of reusable components that assist in speeding up delivery of .Net back-end applications.
+A collection of reusable components that assist speeding up delivery for data-based solutions using Entity Framework.
