@@ -9,19 +9,17 @@ public class TestDbContextFactory : DbContextFactory<TestDbContext>
     {
     }
 
-    protected override TestDbContext Create(DbContextOptions<DbContext> applyOptions,
+    protected override TestDbContext Create(DbContextOptions<DbContextBase> applyOptions,
         IDbContextObserver dbContextObserver)
     {
         return new TestDbContext(applyOptions, dbContextObserver);
     }
 
-    protected override DbContextOptions<DbContext> ApplyOptions(bool sensitiveDataLoggingEnabled = false)
+    protected override DbContextOptions<DbContextBase> ApplyOptions(bool sensitiveDataLoggingEnabled = false)
     {
-        var optionsBuilder = new DbContextOptionsBuilder<DbContext>();
+        var optionsBuilder = new DbContextOptionsBuilder<DbContextBase>();
         if (sensitiveDataLoggingEnabled)
-        {
             optionsBuilder.EnableSensitiveDataLogging();
-        }
 
         optionsBuilder.UseInMemoryDatabase("TestDatabase");
         return optionsBuilder.Options;
