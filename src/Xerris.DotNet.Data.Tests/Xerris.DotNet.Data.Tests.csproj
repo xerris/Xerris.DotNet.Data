@@ -31,7 +31,6 @@
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\..\..\Xerris.DotNet.Data.PostgreSQL\src\Xerris.DotNet.Data.PostgreSQL\Xerris.DotNet.Data.PostgreSQL.csproj" />
       <ProjectReference Include="..\Xerris.DotNet.Data\Xerris.DotNet.Data.csproj" />
     </ItemGroup>
 
