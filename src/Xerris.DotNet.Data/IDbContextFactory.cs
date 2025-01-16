@@ -16,7 +16,7 @@ public abstract class DbContextFactory<T> : IDbContextFactory<T> where T : DbCon
     public DbContextFactory(IConnectionBuilder connectionBuilder, IDbContextObserver observer)
     {
         ConnectionBuilder = connectionBuilder;
-        this.Observer = observer;
+        Observer = observer;
     } 
     
     public T Create() => Create(ApplyOptions(), Observer);
