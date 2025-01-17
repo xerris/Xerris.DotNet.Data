@@ -21,9 +21,7 @@ public abstract class DbContextBase : DbContext, IDbContext, IDisposable
     {
         AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
         auditVisitor = new AuditVisitor();
-        
         this.observer = observer;
-
         if (this.observer == null) return;
 
         base.ChangeTracker.Tracked += this.observer.OnEntityTracked!;
