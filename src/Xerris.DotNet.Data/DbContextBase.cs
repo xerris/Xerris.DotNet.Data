@@ -19,7 +19,6 @@ public abstract class DbContextBase : DbContext, IDbContext, IDisposable
     protected DbContextBase(DbContextOptions<DbContextBase> options, IDbContextObserver observer)
         : base(options)
     {
-        AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
         auditVisitor = new AuditVisitor();
         this.observer = observer;
         if (this.observer == null) return;

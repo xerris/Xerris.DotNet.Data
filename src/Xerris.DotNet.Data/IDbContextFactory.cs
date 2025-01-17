@@ -16,10 +16,10 @@ public abstract class DbContextFactory<T> : IDbContextFactory<T> where T : DbCon
     public DbContextFactory(IConnectionBuilder connectionBuilder, IDbContextObserver observer)
     {
         ConnectionBuilder = connectionBuilder;
-        this.Observer = observer;
+        Observer = observer;
     } 
     
     public T Create() => Create(ApplyOptions(), Observer);
-    protected abstract T Create(DbContextOptions<DbContextBase> applyOptions, IDbContextObserver dbContextObserver);
+    protected abstract T Create(DbContextOptions<DbContextBase> options, IDbContextObserver observer);
     protected abstract DbContextOptions<DbContextBase> ApplyOptions(bool sensitiveDataLoggingEnabled = false);
 }
