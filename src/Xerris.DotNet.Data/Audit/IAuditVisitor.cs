@@ -21,6 +21,7 @@ public class AuditVisitor : IAuditVisitor
 
         entityEntry.CreatedOn = Clock.Utc.Now;
         entityEntry.ModifiedOn = Clock.Utc.Now;
+        entityEntry.SynchronizedOn = Clock.Utc.Now;
 
         if (!userId.HasValue) return;
         
@@ -34,6 +35,7 @@ public class AuditVisitor : IAuditVisitor
     {
         if (entry.Entity is not IAuditable entityEntry) return;
         entityEntry.ModifiedOn = Clock.Utc.Now;
+        entityEntry.SynchronizedOn = Clock.Utc.Now;
 
         if (!userId.HasValue) return;
         entityEntry.ModifiedBy = userId;
@@ -47,6 +49,7 @@ public class AuditVisitor : IAuditVisitor
         ((IDeleteable) entry.Entity).IsDeleted = true;
         entry.State = EntityState.Modified;
         auditableEntry.ModifiedOn = Clock.Utc.Now;
+        auditableEntry.SynchronizedOn = Clock.Utc.Now;
 
         if (!userId.HasValue) return;
         auditableEntry.ModifiedBy = userId.Value;
